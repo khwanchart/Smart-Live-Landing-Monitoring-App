@@ -1,7 +1,9 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import html
 import math
+import textwrap
 
 # ------------------------------------------------------------
 # Page configuration
@@ -201,12 +203,12 @@ def build_wheel_dict(filtered_df):
 def wheel_html(label, item, size="small"):
     if item is None:
         return f"""
-        <div class="wheel-block {size}">
-            <div class="percent-placeholder">&nbsp;</div>
-            <div class="wheel-box empty">{safe_text(label)}</div>
-            <div class="landing-value empty">-</div>
-        </div>
-        """
+<div class="wheel-block {size}">
+    <div class="percent-placeholder">&nbsp;</div>
+    <div class="wheel-box empty">{safe_text(label)}</div>
+    <div class="landing-value empty">-</div>
+</div>
+"""
 
     percent = item.get("percent")
     percent_text = f"{percent}%" if percent is not None else "&nbsp;"
@@ -214,12 +216,12 @@ def wheel_html(label, item, size="small"):
     landing_label = item.get("label", "-")
 
     return f"""
-    <div class="wheel-block {size}">
-        <div class="percent-text {status}">{percent_text}</div>
-        <div class="wheel-box {status}">{safe_text(label)}</div>
-        <div class="landing-value {status}">{safe_text(landing_label)}</div>
-    </div>
-    """
+<div class="wheel-block {size}">
+    <div class="percent-text {status}">{percent_text}</div>
+    <div class="wheel-box {status}">{safe_text(label)}</div>
+    <div class="landing-value {status}">{safe_text(landing_label)}</div>
+</div>
+"""
 
 
 def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
@@ -232,158 +234,173 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
     main_4 = wheel_html("4", wheels["main"].get("4"), size="large")
 
     card_html = f"""
-    <style>
-        .page-wrapper {{
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding-top: 10px;
-        }}
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    html, body {{
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        font-family: Arial, Helvetica, sans-serif;
+    }}
 
-        .aircraft-card {{
-            width: 270px;
-            min-height: 470px;
-            border: 4px solid #000000;
-            border-radius: 45px;
-            background: #ffffff;
-            overflow: hidden;
-            font-family: Arial, Helvetica, sans-serif;
-            color: #000000;
-            box-sizing: border-box;
-        }}
+    .page-wrapper {{
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        width: 100%;
+        padding-top: 10px;
+        box-sizing: border-box;
+    }}
 
-        .updated-date {{
-            text-align: center;
-            font-size: 22px;
-            font-weight: 400;
-            padding-top: 28px;
-            padding-bottom: 6px;
-            line-height: 1.1;
-        }}
+    .aircraft-card {{
+        width: 270px;
+        min-height: 470px;
+        border: 4px solid #000000;
+        border-radius: 45px;
+        background: #ffffff;
+        overflow: hidden;
+        color: #000000;
+        box-sizing: border-box;
+    }}
 
-        .gold-strip {{
-            background: #ead27a;
-            text-align: center;
-            font-size: 27px;
-            font-weight: 400;
-            line-height: 1.25;
-            padding: 0px 8px;
-        }}
+    .updated-date {{
+        text-align: center;
+        font-size: 22px;
+        font-weight: 400;
+        padding-top: 28px;
+        padding-bottom: 6px;
+        line-height: 1.1;
+    }}
 
-        .gold-strip.second {{
-            margin-top: 4px;
-        }}
+    .gold-strip {{
+        background: #ead27a;
+        text-align: center;
+        font-size: 27px;
+        font-weight: 400;
+        line-height: 1.25;
+        padding: 0 8px;
+        box-sizing: border-box;
+        width: 100%;
+    }}
 
-        .nose-section {{
-            margin-top: 12px;
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-        }}
+    .gold-strip.second {{
+        margin-top: 4px;
+    }}
 
-        .main-section {{
-            margin-top: 26px;
-            display: flex;
-            justify-content: center;
-            gap: 9px;
-        }}
+    .nose-section {{
+        margin-top: 12px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+    }}
 
-        .wheel-block {{
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }}
+    .main-section {{
+        margin-top: 26px;
+        display: flex;
+        justify-content: center;
+        gap: 9px;
+    }}
 
-        .wheel-block.small {{
-            width: 45px;
-        }}
+    .wheel-block {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }}
 
-        .wheel-block.large {{
-            width: 42px;
-        }}
+    .wheel-block.small {{
+        width: 45px;
+    }}
 
-        .percent-text {{
-            font-size: 16px;
-            line-height: 1.1;
-            min-height: 18px;
-            color: #ff6426;
-            font-weight: 400;
-        }}
+    .wheel-block.large {{
+        width: 42px;
+    }}
 
-        .percent-placeholder {{
-            min-height: 18px;
-            line-height: 1.1;
-            font-size: 16px;
-        }}
+    .percent-text {{
+        font-size: 16px;
+        line-height: 1.1;
+        min-height: 18px;
+        color: #ff6426;
+        font-weight: 400;
+    }}
 
-        .wheel-box {{
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 2px solid #00304b;
-            box-sizing: border-box;
-            font-weight: 400;
-            color: #ffffff;
-        }}
+    .percent-placeholder {{
+        min-height: 18px;
+        line-height: 1.1;
+        font-size: 16px;
+    }}
 
-        .wheel-block.small .wheel-box {{
-            width: 45px;
-            height: 39px;
-            border-radius: 7px;
-            font-size: 15px;
-        }}
+    .wheel-box {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 2px solid #00304b;
+        box-sizing: border-box;
+        font-weight: 400;
+        color: #ffffff;
+    }}
 
-        .wheel-block.large .wheel-box {{
-            width: 42px;
-            height: 51px;
-            border-radius: 8px;
-            font-size: 22px;
-        }}
+    .wheel-block.small .wheel-box {{
+        width: 45px;
+        height: 39px;
+        border-radius: 7px;
+        font-size: 15px;
+    }}
 
-        .wheel-box.warning {{
-            background: #ffc20a;
-            color: #ffffff;
-        }}
+    .wheel-block.large .wheel-box {{
+        width: 42px;
+        height: 51px;
+        border-radius: 8px;
+        font-size: 22px;
+    }}
 
-        .wheel-box.danger {{
-            background: #f34b3f;
-            color: #ffffff;
-        }}
+    .wheel-box.warning {{
+        background: #ffc20a;
+        color: #ffffff;
+    }}
 
-        .wheel-box.normal {{
-            background: #9fa8ad;
-            color: #ffffff;
-        }}
+    .wheel-box.danger {{
+        background: #f34b3f;
+        color: #ffffff;
+    }}
 
-        .wheel-box.empty {{
-            background: #9fa8ad;
-            color: #ffffff;
-        }}
+    .wheel-box.normal {{
+        background: #9fa8ad;
+        color: #ffffff;
+    }}
 
-        .landing-value {{
-            min-height: 24px;
-            margin-top: 7px;
-            font-size: 20px;
-            line-height: 1.1;
-            color: #ff6426;
-            font-weight: 400;
-            white-space: nowrap;
-        }}
+    .wheel-box.empty {{
+        background: #9fa8ad;
+        color: #ffffff;
+    }}
 
-        .landing-value.empty {{
-            color: transparent;
-        }}
+    .landing-value {{
+        min-height: 24px;
+        margin-top: 7px;
+        font-size: 20px;
+        line-height: 1.1;
+        color: #ff6426;
+        font-weight: 400;
+        white-space: nowrap;
+    }}
 
-        .percent-text.empty {{
-            color: transparent;
-        }}
+    .landing-value.empty {{
+        color: transparent;
+    }}
 
-        .card-bottom-space {{
-            height: 80px;
-        }}
-    </style>
+    .percent-text.empty {{
+        color: transparent;
+    }}
 
+    .card-bottom-space {{
+        height: 80px;
+    }}
+</style>
+</head>
+
+<body>
     <div class="page-wrapper">
         <div class="aircraft-card">
             <div class="updated-date">Update: {safe_text(updated_date)}</div>
@@ -406,9 +423,17 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
             <div class="card-bottom-space"></div>
         </div>
     </div>
-    """
+</body>
+</html>
+"""
 
-    st.markdown(card_html, unsafe_allow_html=True)
+    card_html = textwrap.dedent(card_html)
+
+    components.html(
+        card_html,
+        height=540,
+        scrolling=False
+    )
 
 
 # ------------------------------------------------------------
