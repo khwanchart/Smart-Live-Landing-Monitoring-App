@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import html
+import math
 
 # ------------------------------------------------------------
 # Page configuration
@@ -28,45 +29,73 @@ def load_data(url):
 # Helper functions
 # ------------------------------------------------------------
 def safe_text(value):
-    if pd.isna(value):
+    if value is None or pd.isna(value):
         return "-"
     return html.escape(str(value))
 
 
 def to_number(value):
+    """
+    Safely convert a value to a number.
+    Returns None for blank, NaN, invalid, or infinite values.
+    """
     try:
-        return float(value)
+        if value is None or pd.isna(value):
+            return None
+
+        num = float(value)
+
+        if math.isnan(num) or math.isinf(num):
+            return None
+
+        return num
+
     except Exception:
         return None
 
 
 def format_number(value):
+    """
+    Format numeric values safely.
+    Blank/NaN values become '-'.
+    """
     num = to_number(value)
+
     if num is None:
         return "-"
+
     if num.is_integer():
         return str(int(num))
+
     return str(round(num, 1))
 
 
 def calculate_percent(n_landing, ref_landing):
+    """
+    Calculate tire usage percentage safely.
+    Returns None if nLanding or Ref_nLanding is blank/NaN/zero.
+    """
     n = to_number(n_landing)
     ref = to_number(ref_landing)
 
     if n is None or ref is None or ref == 0:
         return None
 
-    return round((n / ref) * 100)
+    percent = (n / ref) * 100
+
+    if math.isnan(percent) or math.isinf(percent):
+        return None
+
+    return int(round(percent))
 
 
 def get_status_class(percent):
     """
     Color logic:
-    - >= 90% : red alert
-    - >= 80% : amber warning
-    - below 80% : grey/normal
-
-    You can adjust these thresholds if needed.
+    - >= 90% : red
+    - >= 80% : yellow/orange
+    - below 80% : grey
+    - blank value : grey
     """
     if percent is None:
         return "empty"
@@ -81,17 +110,18 @@ def get_status_class(percent):
 
 
 def normalize_position(value):
-    if pd.isna(value):
+    if value is None or pd.isna(value):
         return ""
 
     text = str(value).strip().upper()
     text = text.replace("LEFT", "LH")
     text = text.replace("RIGHT", "RH")
+
     return text
 
 
 def normalize_landing_gear(value):
-    if pd.isna(value):
+    if value is None or pd.isna(value):
         return ""
 
     text = str(value).strip().upper()
@@ -107,9 +137,7 @@ def normalize_landing_gear(value):
 
 def build_wheel_dict(filtered_df):
     """
-    Creates a dictionary with the following expected wheel positions:
-    Nose gear: LH, RH
-    Main gear: 1, 2, 3, 4
+    Creates tire position dictionary.
 
     Expected CSV columns:
     - Landing_Gear
@@ -135,6 +163,7 @@ def build_wheel_dict(filtered_df):
     missing_cols = [c for c in required_cols if c not in filtered_df.columns]
 
     if missing_cols:
+        st.warning(f"Missing required column(s): {', '.join(missing_cols)}")
         return wheels
 
     for _, row in filtered_df.iterrows():
@@ -175,7 +204,7 @@ def wheel_html(label, item, size="small"):
         <div class="wheel-block {size}">
             <div class="percent-placeholder">&nbsp;</div>
             <div class="wheel-box empty">{safe_text(label)}</div>
-            <div class="landing-value">&nbsp;</div>
+            <div class="landing-value empty">-</div>
         </div>
         """
 
@@ -239,7 +268,6 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
             font-weight: 400;
             line-height: 1.25;
             padding: 0px 8px;
-            border-top: 0px solid transparent;
         }}
 
         .gold-strip.second {{
@@ -347,18 +375,6 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
             color: transparent;
         }}
 
-        .landing-value.normal {{
-            color: #ff6426;
-        }}
-
-        .landing-value.warning {{
-            color: #ff6426;
-        }}
-
-        .landing-value.danger {{
-            color: #ff6426;
-        }}
-
         .percent-text.empty {{
             color: transparent;
         }}
@@ -417,7 +433,7 @@ try:
         st.error(f"Missing required column: {required_main_column}")
         st.stop()
 
-    registrations = sorted(data["Aircraft_Registration"].dropna().unique())
+    registrations = sorted(data["Aircraft_Registration"].dropna().astype(str).unique())
 
     if len(registrations) == 0:
         st.warning("No aircraft registrations found in the CSV.")
@@ -429,7 +445,7 @@ try:
         index=0
     )
 
-    filtered_df = data[data["Aircraft_Registration"] == selected_reg].copy()
+    filtered_df = data[data["Aircraft_Registration"].astype(str) == selected_reg].copy()
 
     if filtered_df.empty:
         st.warning("No data found for the selected aircraft registration.")
