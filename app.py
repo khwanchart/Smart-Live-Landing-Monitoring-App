@@ -226,10 +226,10 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
     }}
 
     .aircraft-card {{
-        width: 400px;
-        min-height: 590px;
+        width: 320px;
+        min-height: 480px;
         border: 4px solid #000000;
-        border-radius: 55px;
+        border-radius: 42px;
         background: #ffffff;
         overflow: hidden;
         color: #000000;
@@ -238,43 +238,89 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
 
     .updated-date {{
         text-align: center;
-        font-size: 28px;
+        font-size: 22px;
         font-weight: 400;
-        padding-top: 36px;
-        padding-bottom: 10px;
+        padding-top: 30px;
+        padding-bottom: 6px;
         line-height: 1.2;
     }}
 
     .gold-strip {{
         background: #ead27a;
         text-align: center;
-        font-size: 34px;
+        font-size: 28px;
         font-weight: 400;
-        line-height: 1.3;
-        padding: 0 12px;
+        line-height: 1.15;
+        padding: 0 10px;
         box-sizing: border-box;
         width: 100%;
     }}
 
     .gold-strip.second {{
-        margin-top: 5px;
+        margin-top: 4px;
     }}
 
     .nose-section {{
-        margin-top: 18px;
+        margin-top: 12px;
         display: flex;
         justify-content: center;
-        gap: 22px;
     }}
 
     .main-section {{
-        margin-top: 34px;
+        margin-top: 28px;
         display: flex;
         justify-content: center;
+        gap: 32px;
+    }}
+
+    .wheel-pair {{
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        box-sizing: border-box;
+    }}
+
+    .wheel-pair.nose-pair {{
         gap: 8px;
     }}
 
+    .wheel-pair.main-pair {{
+        gap: 8px;
+    }}
+
+    /*
+       Black connector elements between each pair of blocks.
+       They are placed behind the tire blocks and centered vertically
+       with the wheel boxes.
+    */
+    .connector {{
+        position: absolute;
+        background: #000000;
+        z-index: 1;
+        border-radius: 2px;
+        pointer-events: none;
+    }}
+
+    .connector.nose-connector {{
+        width: 26px;
+        height: 8px;
+        top: 45px;
+        left: 50%;
+        transform: translateX(-50%);
+    }}
+
+    .connector.main-connector {{
+        width: 26px;
+        height: 9px;
+        top: 51px;
+        left: 50%;
+        transform: translateX(-50%);
+    }}
+
     .wheel-block {{
+        position: relative;
+        z-index: 2;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -282,23 +328,18 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
         box-sizing: border-box;
     }}
 
-    /*
-       Important fix:
-       Wider columns prevent text such as 100/290 and 500/450
-       from overlapping with neighboring wheel values.
-    */
     .wheel-block.small {{
-        width: 90px;
+        width: 52px;
     }}
 
     .wheel-block.large {{
-        width: 86px;
+        width: 52px;
     }}
 
     .percent-text {{
-        font-size: 19px;
-        line-height: 1.15;
-        min-height: 24px;
+        font-size: 16px;
+        line-height: 1.1;
+        min-height: 22px;
         color: #ff6426;
         font-weight: 400;
         width: 100%;
@@ -307,9 +348,9 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
     }}
 
     .percent-placeholder {{
-        min-height: 24px;
-        line-height: 1.15;
-        font-size: 19px;
+        min-height: 22px;
+        line-height: 1.1;
+        font-size: 16px;
         width: 100%;
     }}
 
@@ -321,20 +362,22 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
         box-sizing: border-box;
         font-weight: 400;
         color: #ffffff;
+        position: relative;
+        z-index: 3;
     }}
 
     .wheel-block.small .wheel-box {{
-        width: 56px;
-        height: 48px;
-        border-radius: 8px;
-        font-size: 19px;
+        width: 45px;
+        height: 38px;
+        border-radius: 7px;
+        font-size: 15px;
     }}
 
     .wheel-block.large .wheel-box {{
-        width: 56px;
-        height: 64px;
-        border-radius: 9px;
-        font-size: 29px;
+        width: 43px;
+        height: 50px;
+        border-radius: 7px;
+        font-size: 22px;
     }}
 
     .wheel-box.warning {{
@@ -357,22 +400,16 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
         color: #ffffff;
     }}
 
-    /*
-       Important fix:
-       The value text has a fixed column width and centered alignment.
-       This prevents values from touching or overlapping each other.
-    */
     .landing-value {{
-        min-height: 28px;
-        margin-top: 9px;
+        min-height: 26px;
+        margin-top: 7px;
         font-size: 20px;
-        line-height: 1.15;
+        line-height: 1.1;
         color: #ff6426;
         font-weight: 400;
         white-space: nowrap;
-        width: 100%;
+        width: 95px;
         text-align: center;
-        overflow: visible;
         box-sizing: border-box;
     }}
 
@@ -385,7 +422,7 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
     }}
 
     .card-bottom-space {{
-        height: 100px;
+        height: 80px;
     }}
 </style>
 </head>
@@ -399,15 +436,25 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
             <div class="gold-strip second">{safe_text(ac_type)}</div>
 
             <div class="nose-section">
-                {nose_lh}
-                {nose_rh}
+                <div class="wheel-pair nose-pair">
+                    <div class="connector nose-connector"></div>
+                    {nose_lh}
+                    {nose_rh}
+                </div>
             </div>
 
             <div class="main-section">
-                {main_1}
-                {main_2}
-                {main_3}
-                {main_4}
+                <div class="wheel-pair main-pair">
+                    <div class="connector main-connector"></div>
+                    {main_1}
+                    {main_2}
+                </div>
+
+                <div class="wheel-pair main-pair">
+                    <div class="connector main-connector"></div>
+                    {main_3}
+                    {main_4}
+                </div>
             </div>
 
             <div class="card-bottom-space"></div>
@@ -421,7 +468,7 @@ def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
 
     components.html(
         card_html,
-        height=650,
+        height=540,
         scrolling=False
     )
 
