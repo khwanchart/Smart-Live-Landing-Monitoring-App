@@ -140,4 +140,375 @@ def build_wheel_dict(filtered_df):
         return wheels
 
     for _, row in filtered_df.iterrows():
-        gear = norma
+        gear = normalize_landing_gear(row["Landing_Gear"])
+        position = normalize_position(row["Wheel_Position"])
+
+        n_landing = row["nLanding"]
+        ref_landing = row["Ref_nLanding"]
+        percent = calculate_percent(n_landing, ref_landing)
+
+        item = {
+            "position": position,
+            "nLanding": n_landing,
+            "Ref_nLanding": ref_landing,
+            "percent": percent,
+            "label": f"{format_number(n_landing)}/{format_number(ref_landing)}",
+            "status": get_status_class(percent)
+        }
+
+        if gear == "NOSE" and position in wheels["nose"]:
+            wheels["nose"][position] = item
+
+        elif gear == "MAIN" and position in wheels["main"]:
+            wheels["main"][position] = item
+
+        elif position in wheels["main"]:
+            wheels["main"][position] = item
+
+        elif position in wheels["nose"]:
+            wheels["nose"][position] = item
+
+    return wheels
+
+
+def wheel_html(label, item, size="small"):
+    if item is None:
+        return f"""
+<div class="wheel-block {size}">
+    <div class="percent-placeholder">&nbsp;</div>
+    <div class="wheel-box empty">{safe_text(label)}</div>
+    <div class="landing-value empty">-</div>
+</div>
+"""
+
+    percent = item.get("percent")
+    percent_text = f"{percent}%" if percent is not None else "&nbsp;"
+    status = item.get("status", "empty")
+    landing_label = item.get("label", "-")
+
+    return f"""
+<div class="wheel-block {size}">
+    <div class="percent-text {status}">{percent_text}</div>
+    <div class="wheel-box {status}">{safe_text(label)}</div>
+    <div class="landing-value {status}">{safe_text(landing_label)}</div>
+</div>
+"""
+
+
+def render_aircraft_card(selected_reg, ac_type, updated_date, wheels):
+    nose_lh = wheel_html("LH", wheels["nose"].get("LH"), size="small")
+    nose_rh = wheel_html("RH", wheels["nose"].get("RH"), size="small")
+
+    main_1 = wheel_html("1", wheels["main"].get("1"), size="large")
+    main_2 = wheel_html("2", wheels["main"].get("2"), size="large")
+    main_3 = wheel_html("3", wheels["main"].get("3"), size="large")
+    main_4 = wheel_html("4", wheels["main"].get("4"), size="large")
+
+    card_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    html, body {{
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        font-family: Arial, Helvetica, sans-serif;
+    }}
+
+    .page-wrapper {{
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        width: 100%;
+        padding-top: 10px;
+        box-sizing: border-box;
+    }}
+
+    .aircraft-card {{
+        width: 400px;
+        min-height: 590px;
+        border: 4px solid #000000;
+        border-radius: 55px;
+        background: #ffffff;
+        overflow: hidden;
+        color: #000000;
+        box-sizing: border-box;
+    }}
+
+    .updated-date {{
+        text-align: center;
+        font-size: 28px;
+        font-weight: 400;
+        padding-top: 36px;
+        padding-bottom: 10px;
+        line-height: 1.2;
+    }}
+
+    .gold-strip {{
+        background: #ead27a;
+        text-align: center;
+        font-size: 34px;
+        font-weight: 400;
+        line-height: 1.3;
+        padding: 0 12px;
+        box-sizing: border-box;
+        width: 100%;
+    }}
+
+    .gold-strip.second {{
+        margin-top: 5px;
+    }}
+
+    .nose-section {{
+        margin-top: 18px;
+        display: flex;
+        justify-content: center;
+        gap: 22px;
+    }}
+
+    .main-section {{
+        margin-top: 34px;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }}
+
+    .wheel-block {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-sizing: border-box;
+    }}
+
+    /*
+       Important fix:
+       Wider columns prevent text such as 100/290 and 500/450
+       from overlapping with neighboring wheel values.
+    */
+    .wheel-block.small {{
+        width: 90px;
+    }}
+
+    .wheel-block.large {{
+        width: 86px;
+    }}
+
+    .percent-text {{
+        font-size: 19px;
+        line-height: 1.15;
+        min-height: 24px;
+        color: #ff6426;
+        font-weight: 400;
+        width: 100%;
+        text-align: center;
+        white-space: nowrap;
+    }}
+
+    .percent-placeholder {{
+        min-height: 24px;
+        line-height: 1.15;
+        font-size: 19px;
+        width: 100%;
+    }}
+
+    .wheel-box {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 2px solid #00304b;
+        box-sizing: border-box;
+        font-weight: 400;
+        color: #ffffff;
+    }}
+
+    .wheel-block.small .wheel-box {{
+        width: 56px;
+        height: 48px;
+        border-radius: 8px;
+        font-size: 19px;
+    }}
+
+    .wheel-block.large .wheel-box {{
+        width: 56px;
+        height: 64px;
+        border-radius: 9px;
+        font-size: 29px;
+    }}
+
+    .wheel-box.warning {{
+        background: #ffc20a;
+        color: #ffffff;
+    }}
+
+    .wheel-box.danger {{
+        background: #f34b3f;
+        color: #ffffff;
+    }}
+
+    .wheel-box.normal {{
+        background: #9fa8ad;
+        color: #ffffff;
+    }}
+
+    .wheel-box.empty {{
+        background: #9fa8ad;
+        color: #ffffff;
+    }}
+
+    /*
+       Important fix:
+       The value text has a fixed column width and centered alignment.
+       This prevents values from touching or overlapping each other.
+    */
+    .landing-value {{
+        min-height: 28px;
+        margin-top: 9px;
+        font-size: 20px;
+        line-height: 1.15;
+        color: #ff6426;
+        font-weight: 400;
+        white-space: nowrap;
+        width: 100%;
+        text-align: center;
+        overflow: visible;
+        box-sizing: border-box;
+    }}
+
+    .landing-value.empty {{
+        color: transparent;
+    }}
+
+    .percent-text.empty {{
+        color: transparent;
+    }}
+
+    .card-bottom-space {{
+        height: 100px;
+    }}
+</style>
+</head>
+
+<body>
+    <div class="page-wrapper">
+        <div class="aircraft-card">
+            <div class="updated-date">Update: {safe_text(updated_date)}</div>
+
+            <div class="gold-strip">{safe_text(selected_reg)}</div>
+            <div class="gold-strip second">{safe_text(ac_type)}</div>
+
+            <div class="nose-section">
+                {nose_lh}
+                {nose_rh}
+            </div>
+
+            <div class="main-section">
+                {main_1}
+                {main_2}
+                {main_3}
+                {main_4}
+            </div>
+
+            <div class="card-bottom-space"></div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+    card_html = textwrap.dedent(card_html)
+
+    components.html(
+        card_html,
+        height=650,
+        scrolling=False
+    )
+
+
+# ------------------------------------------------------------
+# App UI
+# ------------------------------------------------------------
+st.title("Aircraft Tire Line Maintenance")
+st.caption("Live tire status by aircraft registration from Google Drive CSV")
+
+top_col_1, top_col_2 = st.columns([5, 1])
+
+with top_col_2:
+    if st.button("Refresh Data"):
+        st.cache_data.clear()
+        st.rerun()
+
+try:
+    data = load_data(CSV_URL)
+
+    required_main_column = "Aircraft_Registration"
+
+    if required_main_column not in data.columns:
+        st.error(f"Missing required column: {required_main_column}")
+        st.stop()
+
+    registrations = sorted(data["Aircraft_Registration"].dropna().astype(str).unique())
+
+    if len(registrations) == 0:
+        st.warning("No aircraft registrations found in the CSV.")
+        st.stop()
+
+    selected_reg = st.selectbox(
+        "Select Aircraft Registration:",
+        options=registrations,
+        index=0
+    )
+
+    filtered_df = data[data["Aircraft_Registration"].astype(str) == selected_reg].copy()
+
+    if filtered_df.empty:
+        st.warning("No data found for the selected aircraft registration.")
+        st.stop()
+
+    ac_type = (
+        filtered_df["Aircraft_Type"].iloc[0]
+        if "Aircraft_Type" in filtered_df.columns
+        else "N/A"
+    )
+
+    updated_date = (
+        filtered_df["Updated_Date"].iloc[0]
+        if "Updated_Date" in filtered_df.columns
+        else "N/A"
+    )
+
+    wheels = build_wheel_dict(filtered_df)
+
+    render_aircraft_card(
+        selected_reg=selected_reg,
+        ac_type=ac_type,
+        updated_date=updated_date,
+        wheels=wheels
+    )
+
+    with st.expander("Show source data"):
+        display_cols = [
+            "Aircraft_Registration",
+            "Aircraft_Type",
+            "Updated_Date",
+            "Landing_Gear",
+            "Wheel_Position",
+            "nLanding",
+            "Ref_nLanding"
+        ]
+
+        existing_cols = [c for c in display_cols if c in filtered_df.columns]
+
+        st.dataframe(
+            filtered_df[existing_cols].fillna("-"),
+            use_container_width=True,
+            hide_index=True
+        )
+
+except Exception as e:
+    st.error(f"Error loading or parsing CSV: {e}")
+    st.info(
+        "Please verify that the Google Drive file permission is set to "
+        "'Anyone with the link can view'."
+    )
